@@ -45,6 +45,9 @@ static int register_poll(struct uloop_fd *fd, unsigned int flags)
 
 	if (flags & ULOOP_READ)
 		ev.events |= EPOLLIN | EPOLLRDHUP;
+	
+    if (flags & ULOOP_PRIORITY)
+		ev.events |= EPOLLPRI | EPOLLRDHUP;
 
 	if (flags & ULOOP_WRITE)
 		ev.events |= EPOLLOUT;
@@ -96,6 +99,9 @@ static int uloop_fetch_events(int timeout)
 
 		if(events[n].events & EPOLLIN)
 			ev |= ULOOP_READ;
+
+		if(events[n].events & EPOLLPRI)
+			ev |= ULOOP_PRIORITY;
 
 		if(events[n].events & EPOLLOUT)
 			ev |= ULOOP_WRITE;

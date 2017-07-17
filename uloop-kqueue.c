@@ -71,6 +71,11 @@ static int register_kevent(struct uloop_fd *fd, unsigned int flags)
 		EV_SET(&ev[nev++], fd->fd, EVFILT_READ, kflags, 0, 0, fd);
 	}
 
+	if (changed & ULOOP_PRIORITY) {
+		kflags = get_flags(flags, ULOOP_PRIORITY);
+		EV_SET(&ev[nev++], fd->fd, EVFILT_EXCEPT, kflags, 0, 0, fd);
+	}
+
 	if (changed & ULOOP_WRITE) {
 		kflags = get_flags(flags, ULOOP_WRITE);
 		EV_SET(&ev[nev++], fd->fd, EVFILT_WRITE, kflags, 0, 0, fd);
@@ -129,6 +134,8 @@ static int uloop_fetch_events(int timeout)
 
 		if(events[n].filter == EVFILT_READ)
 			ev |= ULOOP_READ;
+		if(events[n].filter == EVFILT_EXCEPT)
+			ev |= ULOOP_PRIORITY;
 		else if (events[n].filter == EVFILT_WRITE)
 			ev |= ULOOP_WRITE;
 
