@@ -44,16 +44,17 @@ typedef void (*uloop_process_handler)(struct uloop_process *c, int ret);
 #define ULOOP_WRITE		(1 << 1)
 #define ULOOP_EDGE_TRIGGER	(1 << 2)
 #define ULOOP_BLOCKING		(1 << 3)
+#define ULOOP_PRIORITY		(1 << 4)
 
-#define ULOOP_EVENT_MASK	(ULOOP_READ | ULOOP_WRITE)
+#define ULOOP_EVENT_MASK	(ULOOP_READ | ULOOP_WRITE | ULOOP_PRIORITY)
 
 /* internal flags */
-#define ULOOP_EVENT_BUFFERED	(1 << 4)
+#define ULOOP_EVENT_BUFFERED	(1 << 5)
 #ifdef USE_KQUEUE
-#define ULOOP_EDGE_DEFER	(1 << 5)
+#define ULOOP_EDGE_DEFER	(1 << 6)
 #endif
 
-#define ULOOP_ERROR_CB		(1 << 6)
+#define ULOOP_ERROR_CB		(1 << 7)
 
 struct uloop_fd
 {
