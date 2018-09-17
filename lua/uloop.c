@@ -43,22 +43,50 @@ struct lua_uloop_process {
 
 static lua_State *state;
 
+static __attribute__((unused)) void stackDump (lua_State *L) {
+	int i;
+	int top = lua_gettop(L);  /* depth of the stack */
+	for (i = 1; i <= top; i++) {  /* repeat for each level */
+		int t = lua_type(L, i);
+		printf("%d: ", i);
+		switch (t) {
+			case LUA_TSTRING: {  /* strings */
+								  printf("'%s'", lua_tostring(L, i));
+								  break;
+							  }
+			case LUA_TBOOLEAN: {  /* Booleans */
+								   printf(lua_toboolean(L, i) ? "true" : "false");
+								   break; }
+			case LUA_TNUMBER: {  /* numbers */
+								  printf("%g", lua_tonumber(L, i));
+								  break;
+							  }
+			default: {  /* other values */
+						 printf("%s", lua_typename(L, t));
+						 break; }
+		}
+		printf(", ");  /* put a separator */
+	}
+	printf("\n");  /* end the listing */
+}
+
 static void *
 ul_create_userdata(lua_State *L, size_t size, const luaL_Reg *reg, lua_CFunction gc)
 {
-	void *ret = lua_newuserdata(L, size);
+
+	void *ret = lua_newuserdata(L, size); // S: nud
 
 	memset(ret, 0, size);
-	lua_createtable(L, 0, 2);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -2, "__index");
-	lua_pushcfunction(L, gc);
-	lua_setfield(L, -2, "__gc");
-	lua_pushvalue(L, -1);
-	lua_setmetatable(L, -3);
-	lua_pushvalue(L, -2);
-	luaI_openlib(L, NULL, reg, 1);
-	lua_pushvalue(L, -2);
+	lua_createtable(L, 0, 2);   // create a new table, with hint 2 other elements, S: nud, table
+	lua_pushvalue(L, -1);       // duplicate it, now S: nud, table, table
+	lua_setfield(L, -2, "__index"); // set t[__index] = t.  S: nud, table
+	lua_pushcfunction(L, gc);   // nud, table, gc
+	lua_setfield(L, -2, "__gc"); // add t[__gc] = gc to t, S: nud, table
+	lua_pushvalue(L, -1);      // nud, table, table
+	lua_setmetatable(L, -3);   // set on metatable for nud, s: nud, table
+	lua_pushvalue(L, -2);      // copy nud, s: nud, table, nud
+	luaL_setfuncs(L, reg, 1);   // registers reg, with 1 up func. s: nud, table
+	lua_pushvalue(L, -2);      // duplicate nud, s: nud, table, nud
 
 	return ret;
 }
@@ -345,8 +373,8 @@ static int ul_process(lua_State *L)
 
 	if (pid == 0) {
 		/* child */
-		int argn = lua_objlen(L, -3);
-		int envn = lua_objlen(L, -2);
+		int argn = lua_rawlen(L, -3);
+		int envn = lua_rawlen(L, -2);
 		char** argp = malloc(sizeof(char*) * (argn + 2));
 		char** envp = malloc(sizeof(char*) * (envn + 1));
 		int i = 1;
@@ -408,7 +436,7 @@ static int ul_end(lua_State *L)
 	return 1;
 }
 
-static luaL_reg uloop_func[] = {
+static luaL_Reg uloop_func[] = {
 	{"init", ul_init},
 	{"run", ul_run},
 	{"timer", ul_timer},
@@ -432,7 +460,7 @@ int luaopen_uloop(lua_State *L)
 	lua_createtable(L, 1, 0);
 	lua_setglobal(L, "__uloop_fds");
 
-	luaL_openlib(L, "uloop", uloop_func, 0);
+    luaL_newlib(L, uloop_func);
 	lua_pushstring(L, "_VERSION");
 	lua_pushstring(L, "1.0");
 	lua_rawset(L, -3);
