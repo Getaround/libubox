@@ -106,7 +106,8 @@ static void ul_timer_cb(struct uloop_timeout *t)
 static int ul_timer_set(lua_State *L)
 {
 	struct lua_uloop_timeout *tout;
-	double set;
+	lua_Integer set;
+	int isint;
 
 	if (!lua_isnumber(L, -1)) {
 		lua_pushstring(L, "invalid arg list");
@@ -115,7 +116,11 @@ static int ul_timer_set(lua_State *L)
 		return 0;
 	}
 
-	set = lua_tointeger(L, -1);
+	set = lua_tointegerx(L, -1, &isint);
+	if (!isint) {
+		lua_Number n = lua_tonumber(L, -1);
+		set = n;
+	}
 	tout = lua_touserdata(L, 1);
 	uloop_timeout_set(&tout->t, set);
 
@@ -159,7 +164,7 @@ static const luaL_Reg timer_m[] = {
 static int ul_timer(lua_State *L)
 {
 	struct lua_uloop_timeout *tout;
-	int set = 0;
+	lua_Integer set = 0;
 	int ref;
 
 	if (lua_isnumber(L, -1)) {
