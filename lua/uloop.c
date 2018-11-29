@@ -13,6 +13,10 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
+/*** Binding for libubox into lua
+ * @module uloop
+ */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -257,6 +261,14 @@ static const luaL_Reg ufd_m[] = {
 	{ NULL, NULL }
 };
 
+/***
+ * Add a file descriptor to uloop for call on activity
+ * @function fd_add
+ * @tparam int fd File Descriptor to add
+ * @tparam function func Callback function
+ * @tparam int Option flags or of: uloop.ULOOP_READ, 
+ *             uloop.ULOOP_WRITE, uloop.EDGE_TRIGGER, uloop.ULOOP_BLOCKING
+ */
 static int ul_ufd_add(lua_State *L)
 {
 	struct lua_uloop_fd *ufd;
@@ -353,6 +365,14 @@ static void ul_process_cb(struct uloop_process *p, int ret)
 	lua_call(state, 1, 0);
 }
 
+/***
+ * Create a new process and get notified of its termination
+ * @function process
+ * @tparam string process to execute
+ * @tparam table A table of arguments to pass to the process
+ * @tparam table A table of environment variables to set
+ * @tparam function Callback when the process exits
+ */
 static int ul_process(lua_State *L)
 {
 	struct lua_uloop_process *proc;
@@ -419,6 +439,43 @@ static int ul_process(lua_State *L)
 	return 1;
 }
 
+/***
+ * Create a new process and get notified of its termination
+ * @function pid_add
+ * @tparam int pid The process id
+ * @tparam function Callback when the process exits
+ */
+static int ul_pid_add(lua_State *L)
+{
+	struct lua_uloop_process *proc;
+	lua_Integer pid;
+	int isint;
+	int ref;
+
+	pid = lua_tointegerx(L, 1, &isint);
+	if (!isint) {
+		lua_pushliteral(L, "First argument should be pid");
+		lua_error(L);
+	}
+
+	if (!lua_isfunction(L, 2)) {
+		lua_pushliteral(L, "Second argument should be callback function");
+		lua_error(L);
+	}
+
+	lua_getglobal(L, "__uloop_cb");
+	lua_pushvalue(L, -2);
+	ref = luaL_ref(L, -2);
+
+	proc = ul_create_userdata(L, sizeof(*proc), process_m, ul_process_free);
+	proc->r = ref;
+	proc->p.pid = pid;
+	proc->p.cb = ul_process_cb;
+	uloop_process_add(&proc->p);
+
+	return 1;
+}
+
 static int ul_init(lua_State *L)
 {
 	uloop_init();
@@ -446,6 +503,7 @@ static luaL_Reg uloop_func[] = {
 	{"run", ul_run},
 	{"timer", ul_timer},
 	{"process", ul_process},
+	{"pid_add", ul_pid_add},
 	{"fd_add", ul_ufd_add},
 	{"cancel", ul_end},
 	{NULL, NULL},
