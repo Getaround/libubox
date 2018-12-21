@@ -145,6 +145,15 @@ static int ul_timer_remaining(lua_State *L)
 	return 1;
 }
 
+static int ul_timer_cancel(lua_State *L)
+{
+	struct lua_uloop_timeout *tout = lua_touserdata(L, 1);
+
+	uloop_timeout_cancel(&tout->t);
+
+	return 0;
+}
+
 static int ul_timer_free(lua_State *L)
 {
 	struct lua_uloop_timeout *tout = lua_touserdata(L, 1);
@@ -166,7 +175,7 @@ static int ul_timer_free(lua_State *L)
 static const luaL_Reg timer_m[] = {
 	{ "set", ul_timer_set },
 	{ "remaining", ul_timer_remaining },
-	{ "cancel", ul_timer_free },
+	{ "cancel", ul_timer_cancel },
 	{ NULL, NULL }
 };
 
