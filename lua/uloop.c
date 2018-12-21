@@ -222,9 +222,14 @@ static void ul_ufd_cb(struct uloop_fd *fd, unsigned int events)
 
 
 static int get_sock_fd(lua_State* L, int idx) {
+	int isint = 0;
 	int fd;
 	if(lua_isnumber(L, idx)) {
-		fd = lua_tonumber(L, idx);
+		fd = lua_tointegerx(L, idx, &isint);
+		if (!isint) {
+			lua_Number n = lua_tonumber(L, idx);
+			fd = n;
+		}
 	} else {
 		luaL_checktype(L, idx, LUA_TUSERDATA);
 		lua_getfield(L, idx, "getfd");
@@ -281,9 +286,14 @@ static int ul_ufd_add(lua_State *L)
 	unsigned int flags = 0;
 	int ref;
 	int fd_ref;
+	int isint;
 
 	if (lua_isnumber(L, -1)) {
-		flags = lua_tointeger(L, -1);
+		flags = lua_tointegerx(L, -1, &isint);
+		if (!isint) {
+			lua_pushstring(L, "invalid flags provided, must be int");
+			lua_error(L);
+		}
 		lua_pop(L, 1);
 	}
 
