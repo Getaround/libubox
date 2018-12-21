@@ -100,10 +100,15 @@ static void ul_timer_cb(struct uloop_timeout *t)
 	struct lua_uloop_timeout *tout = container_of(t, struct lua_uloop_timeout, t);
 
 	lua_getglobal(state, "__uloop_cb");
-	lua_rawgeti(state, -1, tout->r);
+	int type = lua_rawgeti(state, -1, tout->r);
 	lua_remove(state, -2);
 
-	lua_call(state, 0, 0);
+	if (type == LUA_TFUNCTION) {
+		lua_call(state, 0, 0);
+	} else {
+		printf("In timer callback, asked for callback, didn't get a function\n");
+		stackDump(state);
+	}
 
 }
 
